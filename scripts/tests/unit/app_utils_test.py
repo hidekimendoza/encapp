@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 from encapp_tool import app_utils
 
@@ -37,4 +37,57 @@ class TestAppUtils(unittest.TestCase):
         app_utils.uninstall_app(ADB_DEVICE_VALID_ID, 1)
         mock_uninstall.assert_called_with(
             ADB_DEVICE_VALID_ID, "com.facebook.encapp", 1
+        )
+
+    @patch("encapp_tool.adb_cmds.get_app_pid")
+    def test_wait_for_exit_shall_keep_running_until_encapp_stops(
+            self, mock_get_pid
+    ):
+        mock_get_pid.side_effect = [1234, 1234, -1]
+        with patch("encapp_tool.app_utils.time.sleep") as mock_sleep:
+            app_utils.wait_for_exit(ADB_DEVICE_VALID_ID, 1)
+            mock_sleep.assert_has_calls([call(1), call(1)])
+            mock_get_pid.assert_has_calls([
+                call(ADB_DEVICE_VALID_ID, "com.facebook.encapp", 1),
+                call(ADB_DEVICE_VALID_ID, "com.facebook.encapp", 1),
+                call(ADB_DEVICE_VALID_ID, "com.facebook.encapp", 1)
+            ], any_order=False)
+
+    @patch("encapp_tool.adb_cmds.get_app_pid")
+    def test_wait_for_exit_shall_skip_if_failure(
+            self, mock_get_pid
+    ):
+        mock_get_pid.side_effect = [-2]
+        with patch("encapp_tool.app_utils.time.sleep") as mock_sleep:
+            with self.assertRaises(ValueError) as exc:
+                app_utils.wait_for_exit(ADB_DEVICE_VALID_ID, 1)
+                self.assertEqual(exc.exception.__str__(),
+                                 "error: unable to parse encapp PID")
+            mock_sleep.assert_not_called()
+            mock_get_pid.assert_called_with(
+                ADB_DEVICE_VALID_ID, "com.facebook.encapp", 1
+            )
+
+    @patch("encapp_tool.adb_cmds.get_app_pid")
+    def test_wait_for_exit_shall_skip_if_encapp_not_running(
+            self, mock_get_pid
+    ):
+        mock_get_pid.side_effect = [-1]
+        with patch("encapp_tool.app_utils.time.sleep") as mock_sleep:
+            app_utils.wait_for_exit(ADB_DEVICE_VALID_ID, 1)
+            mock_sleep.assert_not_called()
+            mock_get_pid.assert_called_with(
+                ADB_DEVICE_VALID_ID, "com.facebook.encapp", 1
+            )
+
+    @patch("encapp_tool.adb_cmds.remove_files_using_regex")
+    def test_remove_gen_files_shall_remove_encapp_gen_files(
+            self, mock_rm_files
+    ):
+        app_utils.remove_gen_files(ADB_DEVICE_VALID_ID, 1)
+        mock_rm_files.assert_called_with(
+            ADB_DEVICE_VALID_ID,
+            r"encapp_.*",
+            "/sdcard/",
+            1
         )

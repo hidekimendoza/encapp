@@ -3,8 +3,6 @@ import re
 from subprocess import PIPE, Popen, SubprocessError
 from typing import Dict, List, Optional, Tuple
 
-ENCAPP_OUTPUT_FILE_NAME_RE = r"encapp_.*"
-
 
 def run_cmd(cmd: str, debug: int = 0) -> Tuple[bool, str, str]:
     """Run sh command

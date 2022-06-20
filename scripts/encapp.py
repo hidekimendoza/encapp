@@ -11,17 +11,17 @@ import json
 import sys
 import argparse
 import re
-import time
 import datetime
 import shutil
 
 from encapp_tool import __version__
 from encapp_tool.app_utils import (
-    APPNAME_MAIN, SCRIPT_DIR, ACTIVITY,
-    install_app, uninstall_app, install_ok)
+    SCRIPT_DIR, ACTIVITY,
+    ENCAPP_OUTPUT_FILE_NAME_RE, remove_gen_files,
+    install_app, uninstall_app, install_ok,
+    wait_for_exit)
 from encapp_tool.adb_cmds import (
-    run_cmd, ENCAPP_OUTPUT_FILE_NAME_RE, get_device_info,
-    remove_files_using_regex, get_app_pid)
+    run_cmd, get_device_info)
 
 SCRIPT_ROOT_DIR = os.path.join(SCRIPT_DIR, '..')
 sys.path.append(SCRIPT_ROOT_DIR)
@@ -120,27 +120,6 @@ FFPROBE_FIELDS = {
 R_FRAME_RATE_MAP = {
     '30/1': 30,
 }
-
-
-def remove_encapp_gen_files(serial, debug=0):
-    # remove any files that are generated in previous runs
-    regex_str = ENCAPP_OUTPUT_FILE_NAME_RE
-    location = '/sdcard/'
-    remove_files_using_regex(serial, regex_str, location, debug)
-
-
-def wait_for_exit(serial, debug=0):
-    pid = -1
-    current = 1
-    while current != -1:
-        current = get_app_pid(serial, APPNAME_MAIN, debug)
-        if current > 0:
-            pid = current
-        time.sleep(1)
-    if pid != -1:
-        print(f'Exit from {pid}')
-    else:
-        print(f'{APPNAME_MAIN} was not active')
 
 
 def collect_result(workdir, test_name, serial):
@@ -568,7 +547,7 @@ def main(argv):
 
     # get model and serial number
     model, serial = get_device_info(options.serial, options.debug)
-    remove_encapp_gen_files(serial, options.debug)
+    remove_gen_files(serial, options.debug)
 
     # TODO(chema): fix this
     if type(model) is dict:

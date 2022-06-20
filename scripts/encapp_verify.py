@@ -16,6 +16,7 @@ import numpy as np
 import encapp as ep
 import encapp_search as es
 from encapp_tool.adb_cmds import run_cmd, get_device_info
+from encapp_tool.app_utils import remove_gen_files
 from encapp import convert_to_bps
 from google.protobuf import text_format
 import proto.tests_pb2 as proto
@@ -697,7 +698,7 @@ def main(argv):
 
         os.mkdir(workdir)
         model, serial = get_device_info(options.serial)
-        ep.remove_encapp_gen_files(serial)
+        remove_gen_files(serial)
 
         if isinstance(model, dict):
             if 'model' in model:
