@@ -127,6 +127,8 @@ def collect_result(workdir, test_name, serial):
     run_cmd(f'adb -s {serial} shell am start -W -e test '
             f'/sdcard/{test_name} {ACTIVITY}')
     wait_for_exit(serial)
+    print(f'adb -s {serial} shell am start -W -e test '
+            f'/sdcard/{test_name} {ACTIVITY}')
     adb_cmd = 'adb -s ' + serial + ' shell ls /sdcard/'
     ret, stdout, stderr = run_cmd(adb_cmd, True)
     output_files = re.findall(ENCAPP_OUTPUT_FILE_NAME_RE, stdout,
@@ -134,7 +136,8 @@ def collect_result(workdir, test_name, serial):
     base_file_name = os.path.basename(test_name).rsplit('.run.bin', 1)[0]
     sub_dir = '_'.join([base_file_name, 'files'])
     output_dir = os.path.join(workdir, sub_dir)
-    os.mkdir(output_dir)
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
     result_json = []
     for file in output_files:
         if file == '':
@@ -284,7 +287,7 @@ def run_codec_tests(tests, model, serial, workdir, settings):
     test_file = os.path.basename(test_def)
     testname = f"{test_file[0:test_file.rindex('.')]}.run.bin"
     output = os.path.join(workdir, testname)
-    os.makedirs(workdir)
+    os.makedirs(workdir, exist_ok=True)
     with open(output, 'wb') as binfile:
         binfile.write(fresh.SerializeToString())
         files_to_push.append(output)
@@ -368,9 +371,7 @@ def convert_to_frames(value, fps=30):
 
 def convert_test(path):
     output = f"{path[0:path.rindex('.')]}.bin"
-    # TODO fix for windows
-    root = f"{SCRIPT_DIR[0:SCRIPT_DIR.rindex('/')]}"
-    print(root)
+    root = os.path.join(SCRIPT_DIR, os.pardir)
     tests = os.path.join(root, "proto", "tests.proto")
     cmd = (f'protoc -I / --encode="Tests" {tests} '
            f'< {path} > {output}')
